@@ -1,13 +1,15 @@
 package server
 
 import (
+	"github.com/dgrijalva/jwt-go"
 	"github.com/go-oauth2/oauth2/v4"
 	"github.com/go-oauth2/oauth2/v4/errors"
+	"github.com/go-oauth2/oauth2/v4/generates"
 	"github.com/go-oauth2/oauth2/v4/manage"
 	proxy "github.com/go-oauth2/oauth2/v4/server"
 	"github.com/go-oauth2/oauth2/v4/store"
 	"github.com/lishimeng/go-log"
-	pstore "github.com/lishimeng/openapi/internal/store"
+	"github.com/lishimeng/openapi/internal/store/sclient"
 	"sync"
 	"time"
 )
@@ -23,7 +25,7 @@ func Init() {
 		singleton = proxy.NewDefaultServer(manager)
 		singleton.SetAllowGetAccessRequest(true)
 		singleton.SetAllowedResponseType()
-		singleton.SetAllowedGrantType(oauth2.ClientCredentials)
+		singleton.SetAllowedGrantType(oauth2.ClientCredentials) // refresh_token
 		singleton.SetClientInfoHandler(proxy.ClientFormHandler)
 	})
 }
@@ -35,14 +37,9 @@ func _initConfig() (res oauth2.Manager) {
 		AccessTokenExp:    time.Hour*24*7,
 	})
 	manager.MustTokenStorage(store.NewMemoryTokenStore())
-	//clientStore := store.NewClientStore()
-	//_ = clientStore.Set("00001", &models.Client{
-	//	ID:     "00001",
-	//	Secret: "asdasdasd",
-	//	Domain: "http://localhost",
-	//})
-	clientStore := pstore.New()
+	clientStore := sclient.New()
 	manager.MapClientStorage(clientStore)
+	manager.MapAccessGenerate(generates.NewJWTAccessGenerate("", []byte("00000000"), jwt.SigningMethodHS512))
 	res = manager
 	return
 }
